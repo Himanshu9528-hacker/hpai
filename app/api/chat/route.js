@@ -5,13 +5,21 @@ export async function POST(req) {
   try {
     const { message } = await req.json();
 
+    if (!message) {
+      return NextResponse.json(
+        { error: "Message is required" },
+        { status: 400 }
+      );
+    }
+
     const client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    const response = await client.chat.completions.create({
+    // Latest OpenAI recommended endpoint (Dec 2025)
+    const response = await client.responses.create({
       model: "gpt-4o-mini",
-      messages: [
+      input: [
         {
           role: "system",
           content: "You are HP AI, a friendly helpful assistant.",
@@ -23,9 +31,13 @@ export async function POST(req) {
       ],
     });
 
-    return NextResponse.json({
-      reply: response.choices[0].message.content,
-    });
+    // Extract assistant response
+    const reply =
+      response.output_text ||
+      response.output[0]?.content[0]?.text ||
+      "No response received";
+
+    return NextResponse.json({ reply });
 
   } catch (error) {
     console.error("Error:", error);
